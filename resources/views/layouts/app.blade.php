@@ -34,10 +34,11 @@
             </button>
 
             <nav class="main-nav" id="mainNav" aria-label="Основная навигация">
-                <a class="nav-link is-current" href="{{ url('/') }}">Главная</a>
-                <a class="nav-link" href="{{ url('/documents') }}">Документы</a>
-                <a class="nav-link" href="{{ url('/documents/figure-skating') }}">Документы школы фигурного катания</a>
-                <a class="nav-link" href="{{ url('/contacts') }}">Контакты</a>
+                <a class="nav-link {{ request()->is('/') ? 'is-current' : '' }}" href="{{ url('/') }}">Главная</a>
+                <a class="nav-link {{ request()->is('schedule*') ? 'is-current' : '' }}" href="{{ route('schedule.public') }}">Расписание</a>
+                <a class="nav-link {{ request()->is('documents') ? 'is-current' : '' }}" href="{{ url('/documents') }}">Документы</a>
+                <a class="nav-link {{ request()->is('documents/figure-skating') ? 'is-current' : '' }}" href="{{ url('/documents/figure-skating') }}">Документы школы фигурного катания</a>
+                <a class="nav-link {{ request()->is('contacts') ? 'is-current' : '' }}" href="{{ url('/contacts') }}">Контакты</a>
                 <div class="nav-mobile-extra">
                     <a href="https://vk.ru/public170007616" target="_blank" rel="noopener">ВКонтакте ↗</a>
                 </div>      

@@ -130,7 +130,7 @@
                          data-date-human="{{ $day['date']->format('d.m.Y') }}"
                          data-time="{{ $slot['time'] }}"
                          data-booking='@json($b)'
-                         title="{{ $b ? ($b->entry_type === 'ice_resurfacing' ? 'Заливка льда' : $b->title) : 'Свободно — двойной клик для записи' }}">
+                         @if(!$b) title="Свободно — двойной клик для записи" @endif>
                         <span class="slot-time">{{ $slot['time'] }}</span>
                         @if($b)
                             <span class="slot-sub">{{ $b->entry_type === 'ice_resurfacing' ? 'ЗАЛИВКА' : $b->title }}</span>
@@ -142,7 +142,7 @@
     @endforeach
 </main>
 
-{{-- МОДАЛЬНОЕ ОКНО  --}}
+{{-- МОДАЛЬНОЕ ОКНО --}}
 <div class="admin-modal-backdrop" id="bookingModal">
     <div class="admin-modal">
         <button type="button" class="admin-modal-close" id="closeModalBtn">×</button>
@@ -165,9 +165,9 @@
                 <input type="text" name="title" id="inputTitle" class="form-control" placeholder="Например: ХК Ижсталь разд. 08">
             </div>
 
-            <div class="form-group" style="max-width: 220px;">
+            <div class="form-group">
                 <label class="form-label">Длительность аренды</label>
-                <select name="duration_minutes" id="inputDuration" class="form-control">
+                <select name="duration_minutes" id="inputDuration" class="form-control" style="max-width: 220px;">
                     @for($m = 15; $m <= 240; $m += 15)
                         @php
                             $hours = intdiv($m, 60);
@@ -177,6 +177,9 @@
                         <option value="{{ $m }}" {{ $m === 60 ? 'selected' : '' }}>{{ $label }}</option>
                     @endfor
                 </select>
+                <div id="overlapWarning"
+                     style="display:none; margin-top:8px; padding:9px 12px; border-radius:10px; background:#fee2e2; color:#991b1b; font-size:12px; font-weight:700; line-height:1.4; overflow-wrap:anywhere; word-break:break-word; max-width:100%; box-sizing:border-box;">
+                </div>
             </div>
 
             <div class="form-group">
@@ -224,6 +227,9 @@
     </div>
 </div>
 
+{{-- ВСПЛЫВАЮЩАЯ ПОДСКАЗКА ПРИ НАВЕДЕНИИ НА ЗАПИСЬ --}}
+<div class="admin-slot-tooltip" id="adminSlotTooltip" role="tooltip"></div>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('bookingModal');
@@ -233,7 +239,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const deleteBtn = document.getElementById('deleteBtn');
     const prepSubmitBtn = document.getElementById('prepSubmitBtn');
     const saveSubmitBtn = document.getElementById('saveSubmitBtn');
+    const durationSelect = document.getElementById('inputDuration');
+    const overlapWarning = document.getElementById('overlapWarning');
     const defaultCategoryRadio = document.querySelector('input[name="category_id"]:last-of-type');
+
+    const tooltip = document.getElementById('adminSlotTooltip');
+
+    const dayBookingsMap = {};
+    document.querySelectorAll('.slot-cell').forEach(cell => {
+        const b = JSON.parse(cell.dataset.booking || 'null');
+        if (!b) return;
+
+        const dateKey = cell.dataset.date;
+        if (!dayBookingsMap[dateKey]) dayBookingsMap[dateKey] = new Map();
+        dayBookingsMap[dateKey].set(b.id, b);
+    });
+
+    let currentEditingId = null;
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
 
     function calcDurationMinutes(startAt, endAt) {
         const s = new Date(startAt.replace(' ', 'T'));
@@ -242,7 +273,119 @@ document.addEventListener('DOMContentLoaded', () => {
         return diff > 0 ? diff : 60;
     }
 
+    function parseDateTime(dtStr) {
+        return new Date(String(dtStr).replace(' ', 'T'));
+    }
+
+    function formatHm(dateObj) {
+        const h = String(dateObj.getHours()).padStart(2, '0');
+        const m = String(dateObj.getMinutes()).padStart(2, '0');
+        return `${h}:${m}`;
+    }
+
+    function formatTimeRange(startAt, endAt) {
+        if (!startAt) return '';
+        const startHm = String(startAt).substring(11, 16);
+        const endHm = endAt ? String(endAt).substring(11, 16) : '';
+        return endHm ? `${startHm} – ${endHm}` : startHm;
+    }
+
+    function renderTooltipContent(booking) {
+        if (!tooltip) return;
+        const range = formatTimeRange(booking.start_at, booking.end_at);
+        const isPrep = booking.entry_type === 'ice_resurfacing';
+        const titleText = isPrep ? 'Подготовка / заливка льда' : (booking.title || 'Без названия');
+
+        let html = '';
+        if (range) {
+            html += `<div class="admin-tooltip-time">${escapeHtml(range)}</div>`;
+        }
+        html += `<div class="admin-tooltip-title">${escapeHtml(titleText)}</div>`;
+
+        if (!isPrep && booking.category_name) {
+            html += `<div class="admin-tooltip-category">${escapeHtml(booking.category_name)}</div>`;
+        }
+
+        const contactRows = [];
+        if (!isPrep && booking.renter_phone) {
+            contactRows.push(`<div class="admin-tooltip-row"><strong>Телефон:</strong> ${escapeHtml(booking.renter_phone)}</div>`);
+        }
+        if (!isPrep && booking.renter_email) {
+            contactRows.push(`<div class="admin-tooltip-row"><strong>Email:</strong> ${escapeHtml(booking.renter_email)}</div>`);
+        }
+        if (contactRows.length > 0) {
+            html += `<div class="admin-tooltip-meta">${contactRows.join('')}</div>`;
+        }
+
+        if (booking.notes) {
+            html += `<div class="admin-tooltip-notes">${escapeHtml(booking.notes)}</div>`;
+        }
+
+        tooltip.innerHTML = html;
+    }
+
+    function positionTooltip(cell) {
+        if (!tooltip) return;
+        const rect = cell.getBoundingClientRect();
+        const tipRect = tooltip.getBoundingClientRect();
+        const halfW = (tipRect.width || 280) / 2;
+        const tipH = tipRect.height || 90;
+
+        let left = rect.left + rect.width / 2;
+        left = Math.max(halfW + 12, Math.min(window.innerWidth - halfW - 12, left));
+
+        let top = rect.top - tipH - 10;
+        if (top < 12) {
+            top = rect.bottom + 10;
+        }
+
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+    }
+
+    function checkOverlapLive() {
+        const dateStr = document.getElementById('inputDate').value;
+        const startTimeStr = document.getElementById('inputStartTime').value;
+        const durationMin = parseInt(durationSelect.value, 10) || 0;
+
+        if (!dateStr || !startTimeStr || !durationMin) {
+            overlapWarning.style.display = 'none';
+            saveSubmitBtn.disabled = false;
+            prepSubmitBtn.disabled = false;
+            return false;
+        }
+
+        const startNew = parseDateTime(`${dateStr} ${startTimeStr}:00`);
+        const endNew = new Date(startNew.getTime() + durationMin * 60000);
+
+        const dayEntries = dayBookingsMap[dateStr] ? Array.from(dayBookingsMap[dateStr].values()) : [];
+        const conflict = dayEntries.find(item => {
+            if (currentEditingId && Number(item.id) === Number(currentEditingId)) return false;
+            const itemStart = parseDateTime(item.start_at);
+            const itemEnd = parseDateTime(item.end_at);
+            return startNew < itemEnd && endNew > itemStart;
+        });
+
+        if (conflict) {
+            const cStart = formatHm(parseDateTime(conflict.start_at));
+            const cEnd = formatHm(parseDateTime(conflict.end_at));
+            const cName = conflict.entry_type === 'ice_resurfacing' ? 'Заливка льда' : conflict.title;
+            overlapWarning.textContent = `Время пересекается с записью «${cName}» (${cStart}–${cEnd}). Выберите меньшую длительность.`;
+            overlapWarning.style.display = 'block';
+            saveSubmitBtn.disabled = true;
+            prepSubmitBtn.disabled = true;
+            return true;
+        }
+
+        overlapWarning.style.display = 'none';
+        saveSubmitBtn.disabled = false;
+        prepSubmitBtn.disabled = false;
+        return false;
+    }
+
     function openCreateModal(cell) {
+        if (tooltip) tooltip.classList.remove('is-visible');
+        currentEditingId = null;
         form.action = "{{ route('admin.bookings.store') }}";
         document.getElementById('formMethod').value = 'POST';
         document.getElementById('modalTitle').textContent = `Запись на ${cell.dataset.dateHuman} | ${cell.dataset.time}`;
@@ -258,10 +401,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         deleteBtn.style.display = 'none';
         saveSubmitBtn.textContent = 'Добавить запись';
+        checkOverlapLive();
         modal.classList.add('is-open');
     }
 
     function openEditModal(cell, booking) {
+        if (tooltip) tooltip.classList.remove('is-visible');
+        currentEditingId = booking.id;
         form.action = `/admin/bookings/${booking.id}`;
         document.getElementById('formMethod').value = 'PUT';
         deleteForm.action = `/admin/bookings/${booking.id}`;
@@ -286,11 +432,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
         deleteBtn.style.display = 'inline-block';
         saveSubmitBtn.textContent = 'Изменить запись';
+        checkOverlapLive();
         modal.classList.add('is-open');
     }
 
+    durationSelect.addEventListener('change', checkOverlapLive);
+
+    form.addEventListener('submit', (e) => {
+        if (checkOverlapLive()) {
+            e.preventDefault();
+        }
+    });
+
     document.querySelectorAll('.slot-cell').forEach(cell => {
         const booking = JSON.parse(cell.dataset.booking || 'null');
+
+        if (booking && tooltip) {
+            cell.addEventListener('mouseenter', () => {
+                renderTooltipContent(booking);
+                tooltip.classList.add('is-visible');
+                positionTooltip(cell);
+            });
+
+            cell.addEventListener('mousemove', () => {
+                if (tooltip.classList.contains('is-visible')) {
+                    positionTooltip(cell);
+                }
+            });
+
+            cell.addEventListener('mouseleave', () => {
+                tooltip.classList.remove('is-visible');
+            });
+        }
 
         cell.addEventListener('click', () => {
             if (booking) openEditModal(cell, booking);
@@ -302,6 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     prepSubmitBtn.addEventListener('click', () => {
+        if (checkOverlapLive()) return;
         document.getElementById('inputEntryType').value = 'ice_resurfacing';
         form.submit();
     });
@@ -320,6 +494,10 @@ document.addEventListener('DOMContentLoaded', () => {
     modal.addEventListener('click', (e) => {
         if (e.target === modal) modal.classList.remove('is-open');
     });
+
+    window.addEventListener('scroll', () => {
+        if (tooltip) tooltip.classList.remove('is-visible');
+    }, true);
 });
 </script>
 </body>

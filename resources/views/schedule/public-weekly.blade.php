@@ -49,6 +49,34 @@
             </span>
         </div>
 
+        @php
+            $ruShortDays = [
+                1 => 'Пн',
+                2 => 'Вт',
+                3 => 'Ср',
+                4 => 'Чт',
+                5 => 'Пт',
+                6 => 'Сб',
+                7 => 'Вс',
+            ];
+            $hasToday = collect($days)->contains('is_today', true);
+        @endphp
+
+        <div class="mobile-day-picker" id="mobileDayPicker" aria-label="Выбор дня недели">
+            @foreach($days as $index => $day)
+                @php
+                    $isActiveMobile = $day['is_today'] || ($index === 0 && !$hasToday);
+                    $shortDay = $ruShortDays[$day['date']->dayOfWeekIso] ?? 'День';
+                @endphp
+                <button type="button"
+                        class="mobile-day-btn {{ $isActiveMobile ? 'is-active' : '' }}"
+                        data-date="{{ $day['date_str'] }}">
+                    <span class="mobile-day-short">{{ $shortDay }}</span>
+                    <span class="mobile-day-num">{{ $day['date']->format('d.m') }}</span>
+                </button>
+            @endforeach
+        </div>
+
         <div class="timeline-board">
             <div class="timeline-inner">
                 <div class="timeline-header-row">
@@ -60,8 +88,13 @@
                     </div>
                 </div>
 
-                @foreach($days as $day)
-                    <div class="timeline-day-row" data-date="{{ $day['date_str'] }}" data-is-today="{{ $day['is_today'] ? '1' : '0' }}">
+                @foreach($days as $index => $day)
+                    @php
+                        $isDefaultMobileDay = $day['is_today'] || ($index === 0 && !$hasToday);
+                    @endphp
+                    <div class="timeline-day-row {{ $isDefaultMobileDay ? 'is-mobile-active' : '' }}"
+                         data-date="{{ $day['date_str'] }}"
+                         data-is-today="{{ $day['is_today'] ? '1' : '0' }}">
                         <div class="timeline-day-label-cell">
                             <div class="day-cell-name">{{ $day['day_title'] }}</div>
                             @if($day['is_today'])
@@ -79,13 +112,14 @@
                                          style="left: {{ $event['left'] }}%; width: {{ $event['width'] }}%; background: {{ $event['bg'] }}; border-color: {{ $event['border'] }}; color: {{ $event['text'] }};"
                                          data-time="{{ $event['time_label'] }}"
                                          data-title="{{ $event['title'] }}"
-                                         data-category="{{ $event['category_name'] ?? '' }}"
-                                         data-notes="{{ $event['notes'] ?? '' }}">
-                                        <div class="event-time">{{ $event['time_label'] }}</div>
-                                        <div class="event-title">{{ $event['title'] }}</div>
-                                        @if($event['category_name'])
-                                            <div class="event-category">{{ $event['category_name'] }}</div>
-                                        @endif
+                                         data-category="{{ $event['category_name'] ?? '' }}">
+                                        <div class="event-card-content">
+                                            <div class="event-time">{{ $event['time_label'] }}</div>
+                                            <div class="event-title">{{ $event['title'] }}</div>
+                                            @if($event['category_name'])
+                                                <div class="event-category">{{ $event['category_name'] }}</div>
+                                            @endif
+                                        </div>
                                     </div>
                                 @endforeach
                             @endif
@@ -108,37 +142,84 @@
     <div class="schedule-tooltip-time" id="tooltipTime"></div>
     <div class="schedule-tooltip-title" id="tooltipTitle"></div>
     <div class="schedule-tooltip-category" id="tooltipCategory"></div>
-    <div class="schedule-tooltip-notes" id="tooltipNotes"></div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const modeButtons = document.querySelectorAll('.view-mode-btn');
     const dayRows = document.querySelectorAll('.timeline-day-row');
+    const mobileDayButtons = document.querySelectorAll('.mobile-day-btn');
+    const eventCards = document.querySelectorAll('.event-card');
+    const mobileMedia = window.matchMedia('(max-width: 991.98px)');
+
+    function updateNarrowCards() {
+        if (mobileMedia.matches) {
+            eventCards.forEach(card => card.classList.remove('is-narrow'));
+            return;
+        }
+        eventCards.forEach(card => {
+            card.classList.toggle('is-narrow', card.getBoundingClientRect().width < 58);
+        });
+    }
+
+    function selectMobileDay(dateStr) {
+        mobileDayButtons.forEach(btn => {
+            btn.classList.toggle('is-active', btn.dataset.date === dateStr);
+        });
+        dayRows.forEach(row => {
+            row.classList.toggle('is-mobile-active', row.dataset.date === dateStr);
+        });
+    }
+
+    mobileDayButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectMobileDay(btn.dataset.date);
+        });
+    });
+
+    function syncLayoutByViewport() {
+        if (mobileMedia.matches) {
+            dayRows.forEach(row => { row.style.display = ''; });
+            const activeBtn = Array.from(mobileDayButtons).find(b => b.classList.contains('is-active')) || mobileDayButtons[0];
+            if (activeBtn) {
+                selectMobileDay(activeBtn.dataset.date);
+            }
+        } else {
+            const activeModeBtn = Array.from(modeButtons).find(b => b.classList.contains('is-active'));
+            const mode = activeModeBtn ? activeModeBtn.dataset.mode : 'week';
+            if (mode === 'week') {
+                dayRows.forEach(row => { row.style.display = ''; });
+            } else {
+                const todayRow = Array.from(dayRows).find(r => r.dataset.isToday === '1') || dayRows[0];
+                dayRows.forEach(row => {
+                    row.style.display = (row === todayRow) ? '' : 'none';
+                });
+            }
+        }
+        updateNarrowCards();
+    }
 
     modeButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             modeButtons.forEach(b => b.classList.remove('is-active'));
             btn.classList.add('is-active');
-
-            const mode = btn.dataset.mode;
-            if (mode === 'week') {
-                dayRows.forEach(row => { row.style.display = ''; });
-                return;
-            }
-
-            const todayRow = Array.from(dayRows).find(r => r.dataset.isToday === '1') || dayRows[0];
-            dayRows.forEach(row => {
-                row.style.display = (row === todayRow) ? '' : 'none';
-            });
+            syncLayoutByViewport();
         });
     });
+
+    if (mobileMedia.addEventListener) {
+        mobileMedia.addEventListener('change', syncLayoutByViewport);
+    } else {
+        mobileMedia.addListener(syncLayoutByViewport);
+    }
+
+    window.addEventListener('resize', updateNarrowCards);
+    requestAnimationFrame(updateNarrowCards);
 
     const tooltip = document.getElementById('scheduleTooltip');
     const tooltipTime = document.getElementById('tooltipTime');
     const tooltipTitle = document.getElementById('tooltipTitle');
     const tooltipCategory = document.getElementById('tooltipCategory');
-    const tooltipNotes = document.getElementById('tooltipNotes');
 
     function positionTooltip(card) {
         const rect = card.getBoundingClientRect();
@@ -157,8 +238,9 @@ document.addEventListener('DOMContentLoaded', () => {
         tooltip.style.top = `${top}px`;
     }
 
-    document.querySelectorAll('.event-card').forEach(card => {
+    eventCards.forEach(card => {
         card.addEventListener('mouseenter', () => {
+            if (mobileMedia.matches) return;
             tooltipTime.textContent = card.dataset.time || '';
             tooltipTitle.textContent = card.dataset.title || '';
 
@@ -169,19 +251,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 tooltipCategory.style.display = 'none';
             }
 
-            if (card.dataset.notes) {
-                tooltipNotes.textContent = card.dataset.notes;
-                tooltipNotes.style.display = '';
-            } else {
-                tooltipNotes.style.display = 'none';
-            }
-
             tooltip.classList.add('is-visible');
             positionTooltip(card);
         });
 
         card.addEventListener('mousemove', () => {
-            if (tooltip.classList.contains('is-visible')) {
+            if (!mobileMedia.matches && tooltip.classList.contains('is-visible')) {
                 positionTooltip(card);
             }
         });
