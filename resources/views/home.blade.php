@@ -108,7 +108,94 @@
         </div>
     </div>
 </section>
+<!-- ЗАЯВКА НА АРЕНДУ -->
+<section class="section rental-request-section" id="rental-request">
+    <div class="container">
+        <div class="section-heading rental-heading">
+            <div>
+                <div class="eyebrow"><span class="eyebrow-line"></span> АРЕНДА ЛЬДА И ПОМЕЩЕНИЙ</div>
+                <h2>Оставьте <em>заявку</em></h2>
+            </div>
+            <p>Заполните форму — мы свяжемся с вами, уточним детали и подтвердим бронирование.</p>
+        </div>
 
+        @if(session('rental_success'))<div class="rental-alert rental-alert-success">{{ session('rental_success') }}</div>@endif
+        @if($errors->any())
+            <div class="rental-alert rental-alert-error">
+                @foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach
+            </div>
+        @endif
+
+        @php
+            $formSpaces = \Illuminate\Support\Facades\DB::table('spaces')
+                ->join('facilities', 'spaces.facility_id', '=', 'facilities.id')
+                ->where('spaces.is_active', 1)->where('facilities.is_active', 1)
+                ->select('spaces.id', 'spaces.name as space_name', 'spaces.space_type', 'facilities.name as facility_name', 'facilities.short_name as facility_short_name')
+                ->orderBy('facilities.sort_order')->orderBy('spaces.sort_order')->get();
+            $formCategories = \Illuminate\Support\Facades\DB::table('rental_categories')->where('is_active', 1)->orderBy('sort_order')->get();
+        @endphp
+
+        <div class="rental-request-layout">
+            <aside class="rental-request-aside">
+                <span class="rental-aside-kicker">КАК ЭТО РАБОТАЕТ</span>
+                <ol class="rental-steps">
+                    <li><span class="rental-step-num">1</span><div><b>Выбираете объект</b><p>Лёд, зал или фойе — любая площадка из нашего списка.</p></div></li>
+                    <li><span class="rental-step-num">2</span><div><b>Указываете дату и время</b><p>Сверьтесь с расписанием — окончательно время подтвердит администратор.</p></div></li>
+                    <li><span class="rental-step-num">3</span><div><b>Отправляете заявку</b><p>Мы получим её сразу и свяжемся с вами по телефону или email.</p></div></li>
+                </ol>
+                <div class="rental-aside-contact">
+                    <span>Остались вопросы? Позвоните:</span>
+                    <a href="tel:+73412572061">+7 (3412) 57-20-61</a>
+                </div>
+            </aside>
+
+            <form method="POST" action="{{ route('rental-request.store') }}" class="rental-request-form">
+                @csrf
+                <div class="rental-field-row">
+                    <div class="rental-field">
+                        <label class="rental-label">Площадка <span>*</span></label>
+                        <select name="space_id" class="rental-control" required>
+                            <option value="">— Выберите объект —</option>
+                            @foreach($formSpaces as $sp)
+                                <option value="{{ $sp->id }}" {{ old('space_id') == $sp->id ? 'selected' : '' }}>{{ $sp->facility_short_name ?? $sp->facility_name }} — {{ $sp->space_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="rental-field">
+                        <label class="rental-label">Категория арендатора</label>
+                        <select name="category_id" class="rental-control">
+                            <option value="">— Не указано —</option>
+                            @foreach($formCategories as $cat)<option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>@endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="rental-field-row rental-field-row-3">
+                    <div class="rental-field"><label class="rental-label">Желаемая дата <span>*</span></label><input type="date" name="preferred_date" class="rental-control" value="{{ old('preferred_date') }}" min="{{ date('Y-m-d') }}" required></div>
+                    <div class="rental-field"><label class="rental-label">Время начала <span>*</span></label><input type="time" name="preferred_start_time" class="rental-control" value="{{ old('preferred_start_time') }}" required></div>
+                    <div class="rental-field">
+                        <label class="rental-label">Длительность <span>*</span></label>
+                        <select name="duration_minutes" class="rental-control" required>
+                            @for($m = 15; $m <= 480; $m += 15)
+                                <option value="{{ $m }}" {{ old('duration_minutes', 60) == $m ? 'selected' : '' }}>{{ intdiv($m, 60) > 0 ? intdiv($m, 60).' ч ' : '' }}{{ $m % 60 }} мин</option>
+                            @endfor
+                        </select>
+                    </div>
+                </div>
+                <div class="rental-field"><label class="rental-label">Название / команда <span>*</span></label><input type="text" name="title" class="rental-control" placeholder="Например: ХК «Прогресс» — тренировка" value="{{ old('title') }}" required maxlength="255"></div>
+                <div class="rental-field-row rental-field-row-3">
+                    <div class="rental-field"><label class="rental-label">Ваше имя <span>*</span></label><input type="text" name="renter_name" class="rental-control" placeholder="Иванов Иван Иванович" value="{{ old('renter_name') }}" required maxlength="255"></div>
+                    <div class="rental-field"><label class="rental-label">Телефон <span>*</span></label><input type="tel" name="renter_phone" class="rental-control" placeholder="+7 (900) 000-00-00" value="{{ old('renter_phone') }}" required maxlength="40"></div>
+                    <div class="rental-field"><label class="rental-label">Email</label><input type="email" name="renter_email" class="rental-control" placeholder="you@example.ru" value="{{ old('renter_email') }}" maxlength="255"></div>
+                </div>
+                <div class="rental-field"><label class="rental-label">Комментарий</label><textarea name="notes" class="rental-control rental-textarea" rows="3" placeholder="Нужны раздевалки, инвентарь..." maxlength="2000">{{ old('notes') }}</textarea></div>
+                <div class="rental-form-bottom">
+                    <p class="rental-form-consent">Отправляя форму, вы соглашаетесь на обработку персональных данных.</p>
+                    <button type="submit" class="button button-primary">Отправить заявку <span>↗</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
 <!-- ЦИТАТА -->
 <section class="quote-band">
     <div class="container quote-band-inner"><span class="quote-mark">“</span><div><p>Большие победы начинаются<br>с первого шага на лёд.</p><span>МЕСТО ДЛЯ СПОРТА. ПРОСТРАНСТВО ДЛЯ ЛЮДЕЙ.</span></div><span class="quote-spark">✳</span></div>

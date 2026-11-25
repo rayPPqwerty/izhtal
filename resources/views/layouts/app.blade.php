@@ -37,14 +37,29 @@
                 <a class="nav-link {{ request()->is('/') ? 'is-current' : '' }}" href="{{ url('/') }}">Главная</a>
                 <a class="nav-link {{ request()->is('schedule*') ? 'is-current' : '' }}" href="{{ route('schedule.public') }}">Расписание</a>
                 <a class="nav-link {{ request()->is('documents') ? 'is-current' : '' }}" href="{{ url('/documents') }}">Документы</a>
-                <a class="nav-link {{ request()->is('documents/figure-skating') ? 'is-current' : '' }}" href="{{ url('/documents/figure-skating') }}">Документы школы фигурного катания</a>
+                <a class="nav-link {{ request()->is('documents/figure-skating') ? 'is-current' : '' }}" href="{{ url('/documents/figure-skating') }}">Фигурное катание</a>
                 <a class="nav-link {{ request()->is('contacts') ? 'is-current' : '' }}" href="{{ url('/contacts') }}">Контакты</a>
+                
                 <div class="nav-mobile-extra">
+                    <a href="{{ url('/') }}#rental-request" class="btn-mobile-cta">Оставить заявку</a>
                     <a href="https://vk.ru/public170007616" target="_blank" rel="noopener">ВКонтакте ↗</a>
                 </div>      
             </nav>
 
-            <a class="header-contact" href="tel:+73412572051"><span class="contact-icon">↗</span><span><small>Приёмная</small><strong>+7 (3412) 57-20-51</strong></span></a>
+            <div class="header-actions">
+                <a class="header-contact" href="tel:+73412572051">
+                    <span class="contact-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                    </span>
+                    <span>
+                        <small>Приёмная</small>
+                        <strong>+7 (3412) 57-20-51</strong>
+                    </span>
+                </a>
+                <a href="{{ url('/') }}#rental-request" class="header-cta-btn">Оставить заявку</a>
+            </div>
         </div>
     </header>
 
@@ -86,6 +101,7 @@
     </footer>
 
     <script src="{{ asset('js/app.js') }}"></script>
+    <script src="{{ asset('js/phone-mask.js') }}"></script>
 
     @stack('scripts')
 </body>

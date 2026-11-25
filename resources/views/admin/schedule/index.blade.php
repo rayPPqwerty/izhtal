@@ -32,6 +32,13 @@
                class="admin-section-tab {{ $section === 'foyer' ? 'is-active' : '' }}">
                 Аренда фойе
             </a>
+            <a href="{{ route('admin.requests.index') }}" class="admin-section-tab">
+    Заявки
+    @php $newRequests = \Illuminate\Support\Facades\DB::table('rental_requests')->where('status','new')->count(); @endphp
+    @if($newRequests > 0)
+        <span class="rr-badge-count">{{ $newRequests }}</span>
+    @endif
+</a>
         </nav>
 
         <div style="display:flex; align-items:center; gap:14px;">
