@@ -20,12 +20,14 @@ class PublicRentalRequestController extends Controller
             'renter_phone'         => 'required|string|max:40',
             'renter_email'         => 'nullable|email|max:255',
             'notes'                => 'nullable|string|max:2000',
+            'consent'              => 'accepted',
         ], [
             'preferred_date.after_or_equal' => 'Дата не может быть в прошлом.',
             'space_id.required'             => 'Пожалуйста, выберите площадку.',
             'title.required'                => 'Укажите название команды или мероприятия.',
             'renter_name.required'          => 'Укажите ваше имя.',
             'renter_phone.required'         => 'Укажите телефон для связи.',
+            'consent.accepted'              => 'Необходимо ваше согласие на обработку персональных данных.',
         ]);
 
         DB::table('rental_requests')->insert([

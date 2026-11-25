@@ -788,3 +788,156 @@ button { font: inherit; }
     animation-iteration-count: 1;
   }
 }
+.rental-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  cursor: pointer;
+  max-width: 420px;
+}
+
+.rental-checkbox-label input[type="checkbox"] {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.rental-checkbox-label a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 700;
+  transition: color 0.2s;
+}
+
+.rental-checkbox-label a:hover {
+  color: var(--accent-hover);
+}
+
+/* ===== СТРАНИЦА ПОЛИТИКИ КОНФИДЕНЦИАЛЬНОСТИ (ГОСТ) ===== */
+.privacy-page {
+  background: #f7fbfd;
+  padding: 80px 0 100px;
+}
+
+.privacy-doc {
+  background: #fff;
+  max-width: 850px;
+  margin: 0 auto;
+  padding: 60px 70px;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(42, 102, 132, 0.05);
+  border: 1px solid var(--line);
+}
+
+.privacy-header {
+  text-align: center;
+  margin-bottom: 40px;
+  padding-bottom: 30px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.privacy-header h1 {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--ink);
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+  letter-spacing: -.02em;
+}
+
+.privacy-subtitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-bottom: 20px;
+}
+
+.privacy-date {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+ 
+.privacy-content {
+  font-family: 'Manrope', sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #333;
+  text-align: justify;
+}
+
+.privacy-content h2 {
+  font-family: 'Manrope', sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 35px 0 15px 0;
+  text-align: left;
+}
+
+.privacy-content p {
+  margin-bottom: 14px;
+  text-indent: 25px;
+}
+
+.privacy-content ul {
+  margin-bottom: 18px;
+  padding-left: 45px;
+}
+
+.privacy-content li {
+  margin-bottom: 8px;
+}
+
+.privacy-content a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.privacy-content a:hover {
+  color: var(--accent-hover);
+}
+
+.privacy-requisites {
+  background: #f7fbfd;
+  padding: 20px 24px;
+  border-radius: 10px;
+  border-left: 3px solid var(--accent);
+  margin: 20px 0;
+  text-indent: 0;
+}
+
+.privacy-requisites p {
+  text-indent: 0;
+  margin-bottom: 8px;
+}
+
+.privacy-requisites p:last-child {
+  margin-bottom: 0;
+}
+
+.privacy-footer {
+  margin-top: 50px;
+  padding-top: 25px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 780px) {
+  .privacy-page { padding: 40px 0 60px; }
+  .privacy-doc { padding: 30px 20px; }
+  .privacy-header h1 { font-size: 20px; }
+  .privacy-content { font-size: 14px; text-indent: 20px; }
+  .privacy-content ul { padding-left: 25px; }
+}

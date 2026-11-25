@@ -189,7 +189,13 @@
                 </div>
                 <div class="rental-field"><label class="rental-label">Комментарий</label><textarea name="notes" class="rental-control rental-textarea" rows="3" placeholder="Нужны раздевалки, инвентарь..." maxlength="2000">{{ old('notes') }}</textarea></div>
                 <div class="rental-form-bottom">
-                    <p class="rental-form-consent">Отправляя форму, вы соглашаетесь на обработку персональных данных.</p>
+                    <label class="rental-checkbox-label">
+                        <input type="checkbox" name="consent" value="1" required {{ old('consent') ? 'checked' : '' }}>
+                        <span>
+                            Я даю согласие на обработку моих персональных данных в соответствии с 
+                            <a href="{{ url('/privacy') }}" target="_blank">Политикой конфиденциальности</a>.
+                        </span>
+                    </label>
                     <button type="submit" class="button button-primary">Отправить заявку <span>↗</span></button>
                 </div>
             </form>
