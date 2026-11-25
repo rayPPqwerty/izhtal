@@ -30,4 +30,8 @@ class HomeController extends Controller
     {
         return view('/gallery');
     }
+    public function privacy()
+    {
+        return view('privacy');
+    }
 }

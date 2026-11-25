@@ -16,7 +16,7 @@ Route::get('/gallery', [App\Http\Controllers\HomeController::class, 'gallery'])-
 
 Route::get('/schedule-plan', [ScheduleViewerController::class, 'show'])->name('schedule.public');
 Route::post('/rental-request', [PublicRentalRequestController::class, 'store'])->name('rental-request.store');
-
+Route::get('/privacy', [App\Http\Controllers\HomeController::class, 'privacy'])->name('privacy');
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [ScheduleController::class, 'index'])->name('schedule.index');
     Route::post('/bookings', [ScheduleController::class, 'store'])->name('bookings.store');
